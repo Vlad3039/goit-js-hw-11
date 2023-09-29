@@ -19,6 +19,7 @@ const refs = {
 };
 
 let totalPage = 1;
+let isLoading = false; // Додана змінна для відстеження завантаження
 
 refs.form.addEventListener('submit', handleSubmit);
 
@@ -35,8 +36,6 @@ async function handleSubmit(event) {
   try {
     const valueQuery = await fetchPictures(url);
 
-    // console.log(valueQuery.hits);
-
     if (valueQuery.hits.length === 0)
       return Notiflix.Notify.info(
         'Sorry, there are no images matching your search query. Please try again.'
@@ -45,13 +44,10 @@ async function handleSubmit(event) {
 
     totalPage = Math.ceil(valueQuery.totalHits / 40);
 
-    // console.log(valueQuery.totalHits);
-
     createGalleryMarkup(valueQuery, refs.galleryWrapper);
     urlInfo.currentPage += 1;
     slowlyScroll();
     lightbox.refresh();
-    // const lightbox = new SimpleLightbox('.gallery a');
 
     refs.form.reset();
   } catch (error) {
@@ -64,21 +60,25 @@ addEventListener('scroll', onScroll);
 async function onScroll() {
   const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
 
-  // console.log(scrollHeight - 7000);
+  if (isLoading || urlInfo.currentPage >= totalPage) {
+    return;
+  }
+
   if (scrollTop + clientHeight >= scrollHeight) {
     const url = makeURL(urlInfo);
     showLoader();
+    isLoading = true;
     try {
       const valueQuery = await fetchPictures(url);
       urlInfo.currentPage += 1;
       createGalleryMarkup(valueQuery, refs.galleryWrapper);
       slowlyScroll();
       lightbox.refresh();
-      // const lightbox = new SimpleLightbox('.gallery a');
     } catch (error) {
       console.log(error);
     } finally {
       hideLoader();
+      isLoading = false;
     }
   }
 }
